@@ -15,9 +15,9 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
-
+  
   <ItemGroup>
-    <Protobuf Include="Protos\greet.proto" GrpcServices="Client" />
+    <Protobuf Include="..\greet.proto" GrpcServices="Client" />
   </ItemGroup>
 
 </Project>

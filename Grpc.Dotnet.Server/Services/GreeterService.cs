@@ -1,5 +1,5 @@
 using Grpc.Core;
-using Grpc.Dotnet.Server;
+using Grpc.Dotnet.Protos;
 
 namespace Grpc.Dotnet.Server.Services
 {

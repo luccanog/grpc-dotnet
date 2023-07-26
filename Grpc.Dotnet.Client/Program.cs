@@ -1,4 +1,4 @@
-﻿using Grpc.Dotnet.Client;
+﻿using Grpc.Dotnet.Protos;
 using Grpc.Net.Client;
 
 using var channel = GrpcChannel.ForAddress("https://localhost:7256");
