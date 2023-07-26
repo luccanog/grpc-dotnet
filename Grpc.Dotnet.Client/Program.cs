@@ -1,50 +1,67 @@
-﻿using Grpc.Dotnet.Protos;
+﻿using Grpc.Dotnet.Client;
+using Grpc.Dotnet.Protos;
 using Grpc.Net.Client;
-using System.Net.Http.Json;
-using System.Text.Json.Serialization;
 
-using var channel = GrpcChannel.ForAddress("https://localhost:7256");
-var client = new Greeter.GreeterClient(channel);
 
-//Single message
-var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
-Console.WriteLine("Greeting: " + reply.Message);
-
-//Stream message
-var stream = client.SayHeloStream();
-try
+internal class Program
 {
-    var data = await GetMockData();
-
-    foreach (var item in data)
+    private static async Task Main(string[] args)
     {
-        await stream.RequestStream.WriteAsync(new HelloRequest { Name = item.Name });
-        await Task.Delay(250);
+        using var channel = GrpcChannel.ForAddress("https://localhost:7256");
+        var client = new Greeter.GreeterClient(channel);
+
+        //Single message
+        var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
+        Console.WriteLine("Greeting: " + reply.Message);
+
+        //Stream message
+        var data = await Mock.GetData();
+
+        await StreamCommunication(client, data);
+
+        //Bidirectional stream
+        await BiDirectionalStreamCommunication(client, data);
+
+        Console.WriteLine("Press any key to exit...");
+        Console.ReadKey();
     }
-}
-finally
-{
-    await stream.RequestStream.CompleteAsync();
-}
 
-Console.WriteLine("Press any key to exit...");
-Console.ReadKey();
+    private static async Task BiDirectionalStreamCommunication(Greeter.GreeterClient client, IEnumerable<Mock.MockData> data)
+    {
+        var biStream = client.SayHelloHandleErrorStream();
+        try
+        {
+            foreach (var item in data)
+            {
+                await biStream.RequestStream.WriteAsync(new HelloRequest { Name = item.Name });
+                await Task.Delay(250);
+            }
+        }
+        finally
+        {
+            await biStream.RequestStream.CompleteAsync();
+        }
 
+        while (await biStream.ResponseStream.MoveNext(new CancellationToken()))
+        {
+            Console.WriteLine("Error from gRPC server: " + biStream.ResponseStream.Current.Message);
+        }
+    }
 
-static async Task<IEnumerable<MockData>> GetMockData()
-{
-    HttpClient httpClient = new HttpClient();
-
-    var response = await httpClient.GetAsync("https://64c09be20d8e251fd1124065.mockapi.io/names");
-    return await response.Content.ReadFromJsonAsync<IEnumerable<MockData>>();
-}
-
-record MockData
-{
-
-    [JsonPropertyName("id")]
-    public int Id { get; set; }
-
-    [JsonPropertyName("name")]
-    public string Name { get; set; }
+    private static async Task StreamCommunication(Greeter.GreeterClient client, IEnumerable<Mock.MockData> data)
+    {
+        var stream = client.SayHeloStream();
+        try
+        {
+            foreach (var item in data)
+            {
+                await stream.RequestStream.WriteAsync(new HelloRequest { Name = item.Name });
+                await Task.Delay(250);
+            }
+        }
+        finally
+        {
+            await stream.RequestStream.CompleteAsync();
+        }
+    }
 }

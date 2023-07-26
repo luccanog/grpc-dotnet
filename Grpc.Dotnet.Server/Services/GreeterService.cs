@@ -22,13 +22,33 @@ namespace Grpc.Dotnet.Server.Services
 
         public override async Task<Empty> SayHeloStream(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
         {
-            while(await requestStream.MoveNext())
+            while (await requestStream.MoveNext())
             {
                 var msg = requestStream.Current;
                 _logger.LogInformation(msg.Name);
             }
 
             return new Empty();
+        }
+
+        public override async Task SayHelloHandleErrorStream(
+            IAsyncStreamReader<HelloRequest> requestStream,
+            IServerStreamWriter<ErrorMessage> responseStream,
+            ServerCallContext context)
+        {
+            while (await requestStream.MoveNext())
+            {
+                var msg = requestStream.Current;
+                _logger.LogInformation(msg.Name);
+
+                if (msg.Name.Length < 4)
+                {
+                    await responseStream.WriteAsync(new ErrorMessage()
+                    {
+                        Message = $"{msg.Name} name length is lower than 4 chars."
+                    });
+                }
+            }
         }
     }
 }
