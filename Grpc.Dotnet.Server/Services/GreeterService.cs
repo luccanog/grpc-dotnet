@@ -1,3 +1,4 @@
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
 using Grpc.Dotnet.Protos;
 
@@ -17,6 +18,17 @@ namespace Grpc.Dotnet.Server.Services
             {
                 Message = "Hello " + request.Name
             });
+        }
+
+        public override async Task<Empty> SayHeloStream(IAsyncStreamReader<HelloRequest> requestStream, ServerCallContext context)
+        {
+            while(await requestStream.MoveNext())
+            {
+                var msg = requestStream.Current;
+                _logger.LogInformation(msg.Name);
+            }
+
+            return new Empty();
         }
     }
 }
