@@ -14,9 +14,9 @@ internal class Program
         var reply = await client.SayHelloAsync(new HelloRequest { Name = "GreeterClient" });
         Console.WriteLine("Greeting: " + reply.Message);
 
-        //Stream message
         var data = await Mock.GetData();
 
+        //Stream message
         await StreamCommunication(client, data);
 
         //Bidirectional stream
@@ -28,24 +28,35 @@ internal class Program
 
     private static async Task BiDirectionalStreamCommunication(Greeter.GreeterClient client, IEnumerable<Mock.MockData> data)
     {
-        var biStream = client.SayHelloHandleErrorStream();
-        try
-        {
-            foreach (var item in data)
-            {
-                await biStream.RequestStream.WriteAsync(new HelloRequest { Name = item.Name });
-                await Task.Delay(250);
-            }
-        }
-        finally
-        {
-            await biStream.RequestStream.CompleteAsync();
-        }
+        Console.WriteLine("***Bidirectional stream communication***");
 
-        while (await biStream.ResponseStream.MoveNext(new CancellationToken()))
+        var biStream = client.SayHelloHandleErrorStream();
+
+        var requestStreamTask = Task.Run(async () =>
         {
-            Console.WriteLine("Error from gRPC server: " + biStream.ResponseStream.Current.Message);
-        }
+            try
+            {
+                foreach (var item in data)
+                {
+                    await biStream.RequestStream.WriteAsync(new HelloRequest { Name = item.Name });
+                    await Task.Delay(500);
+                }
+            }
+            finally
+            {
+                await biStream.RequestStream.CompleteAsync();
+            }
+        });
+
+        var responseStreamTask = Task.Run(async () =>
+        {
+            while (await biStream.ResponseStream.MoveNext(new CancellationToken()))
+            {
+                Console.WriteLine("Error from gRPC server: " + biStream.ResponseStream.Current.Message);
+            }
+        });
+        
+        await Task.WhenAll(requestStreamTask, responseStreamTask);
     }
 
     private static async Task StreamCommunication(Greeter.GreeterClient client, IEnumerable<Mock.MockData> data)
@@ -56,7 +67,6 @@ internal class Program
             foreach (var item in data)
             {
                 await stream.RequestStream.WriteAsync(new HelloRequest { Name = item.Name });
-                await Task.Delay(250);
             }
         }
         finally

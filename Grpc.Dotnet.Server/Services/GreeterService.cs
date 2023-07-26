@@ -41,11 +41,11 @@ namespace Grpc.Dotnet.Server.Services
                 var msg = requestStream.Current;
                 _logger.LogInformation(msg.Name);
 
-                if (msg.Name.Length < 4)
+                if (msg.Name.Length > 7)
                 {
                     await responseStream.WriteAsync(new ErrorMessage()
                     {
-                        Message = $"{msg.Name} name length is lower than 4 chars."
+                        Message = $"{msg.Name} name length is greater than 7 characters."
                     });
                 }
             }
